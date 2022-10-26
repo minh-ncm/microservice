@@ -49,30 +49,45 @@ services:
     #   - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
     restart: always
 
-  # traefik_proxy:
-  #   image: traefik:2.9
-  #   ports:
-  #     - 3003:80
-  #   labels:
-  #     - "traefik.http.routers.traefik.rule=Host(`localhost.com`)"
-  #   container_name: traefik_proxy
-  #   volumes:
-  #     - /var/run/docker.sock:/var/run/docker.sock
-  #     - ./traefik/traefik.toml:/etc/traefik/traefik.toml
-  #     - ./traefik/log:/var/log
+  traefik:
+    # The official v2 Traefik docker image
+    image: traefik:v2.9
+    container_name: micro_traefik
+    ports:
+      - "81:80"
+      - "444:443"
+      - "8003:8080"
+    labels:
+      - "traefik.http.routers.traefik.rule=Host(`localhost.com`)"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./configs/traefik.toml:/etc/traefik/traefik.toml
+      - ./logs/:/var/log
+    networks:
+      - external-proxy
+      - internal-proxy
   
-  # ambassador_gateway:
-  #   image: datawire/ambassador:1.14
-  #   command: --port 8080
-  #   volumes:
-  #     - ./gateway-config:/ambassador/ambassador-config
-  #   environment:
-  #     - AMBASSADOR_NO_KUBEWATCH=no_kubewatch
-  #   labels:
-  #     - "traefik.http.routers.gateway.rule=Host(`localhost.com`) && PathPrefix(`/api`)"
-  #     - "traefik.http.middlewares.gateway-stripprefix.stripprefix.prefixes=/api"
-  #     - "traefik.http.routers.gateway.middlewares=gateway-stripprefix@docker"
-  #     - "traefik.http.routers.gateway.service=gateway"
-  #     - "traefik.http.services.gateway.loadbalancer.server.port=8080"
-  #     - "traefik.docker.network=external-proxy"
-  #   container_name: ambassador_gateway
+  gateway:
+    image: datawire/ambassador:1.14.0
+    command: --port 8080
+    volumes:
+      - ./gateway-config:/ambassador/ambassador-config
+    environment:
+      - AMBASSADOR_NO_KUBEWATCH=no_kubewatch
+    labels:
+      - "traefik.http.routers.gateway.rule=Host(`localhost.com`) && PathPrefix(`/api`)"
+      - "traefik.http.middlewares.gateway-stripprefix.stripprefix.prefixes=/api"
+      - "traefik.http.routers.gateway.middlewares=gateway-stripprefix@docker"
+      - "traefik.http.routers.gateway.service=gateway"
+      - "traefik.http.services.gateway.loadbalancer.server.port=8081"
+      - "traefik.docker.network=external-proxy"
+    container_name: gateway
+    networks:
+      - internal-proxy
+
+
+networks:
+  external-proxy:
+    external: true
+  internal-proxy:
+    external: false

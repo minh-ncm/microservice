@@ -1,0 +1,12 @@
+---
+apiVersion: ambassador/v2
+kind:  Mapping
+name:  auth
+prefix: /auth/
+service: http://172.27.230.14:3001
+---
+apiVersion: ambassador/v2
+kind:  Mapping
+name:  fine
+prefix: /fine/
+service: http://172.27.230.14:3002
