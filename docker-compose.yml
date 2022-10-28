@@ -12,6 +12,9 @@ services:
       - .:/app
     command: gunicorn backend.services.auth.main:web_app -c backend/services/auth/config/gunicorn.conf.py
     restart: unless-stopped
+    networks:
+      - external-proxy
+      - internal-proxy
   
   fine_app:
     build: 
@@ -24,6 +27,9 @@ services:
       - .:/app
     command: gunicorn backend.services.fine.main:web_app -c backend/services/fine/config/gunicorn.conf.py
     restart: unless-stopped
+    networks:
+      - external-proxy
+      - internal-proxy
 
   auth_mongo:
     image: mongo:6.0
@@ -54,9 +60,9 @@ services:
     image: traefik:v2.9
     container_name: micro_traefik
     ports:
-      - "81:80"
-      - "444:443"
-      - "8003:8080"
+      - "80:80"
+      - "443:443"
+      - "8081:8080"
     labels:
       - "traefik.http.routers.traefik.rule=Host(`localhost.com`)"
     volumes:
@@ -68,10 +74,10 @@ services:
       - internal-proxy
   
   gateway:
-    image: datawire/ambassador:1.14.0
+    image: quay.io/datawire/ambassador:0.86.1
     command: --port 8080
     volumes:
-      - ./gateway-config:/ambassador/ambassador-config
+      - ./configs/ambassador:/ambassador/ambassador-config
     environment:
       - AMBASSADOR_NO_KUBEWATCH=no_kubewatch
     labels:
@@ -79,7 +85,7 @@ services:
       - "traefik.http.middlewares.gateway-stripprefix.stripprefix.prefixes=/api"
       - "traefik.http.routers.gateway.middlewares=gateway-stripprefix@docker"
       - "traefik.http.routers.gateway.service=gateway"
-      - "traefik.http.services.gateway.loadbalancer.server.port=8081"
+      - "traefik.http.services.gateway.loadbalancer.server.port=8080"
       - "traefik.docker.network=external-proxy"
     container_name: gateway
     networks:

@@ -1,0 +1,14 @@
+---
+apiVersion: ambassador/v1
+kind:  Mapping
+name:  public-ip
+prefix: /test
+rewrite: /
+service: https://httpbin.org
+---
+apiVersion: ambassador/v1
+kind:  Mapping
+name:  auth
+prefix: /auth
+rewrite: /
+service: http://localhost.com:3002
